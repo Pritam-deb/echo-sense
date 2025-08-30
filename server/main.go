@@ -8,4 +8,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	err = utils.CreateDirIfNotExist("SONGS")
+	if err != nil {
+		panic(err)
+	}
 }
