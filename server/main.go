@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/Pritam-deb/echo-sense/handlers"
 	"github.com/Pritam-deb/echo-sense/utils"
 )
 
@@ -25,12 +26,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// err = utils.CreateDirIfNotExist(SONGS)
-	// if err != nil {
-	// 	logger := utils.GetLogger()
-	// 	ctx := context.Background()
-	// 	logger.ErrorContext(ctx, "Failed to create directory for songs", slog.Any("error", err))
-	// }
+	err = utils.CreateDirIfNotExist(handlers.SONGS_DIR)
+	if err != nil {
+		logger := utils.GetLogger()
+		ctx := context.Background()
+		logger.ErrorContext(ctx, "Failed to create directory for songs", slog.Any("error", err))
+	}
 
 	switch os.Args[1] {
 	case "download":
@@ -41,6 +42,7 @@ func main() {
 		}
 		url := os.Args[2]
 		fmt.Println("Downloading from URL:", url)
+		handlers.Download(url)
 	}
 
 }
