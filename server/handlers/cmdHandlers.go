@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/Pritam-deb/echo-sense/internals/spotify"
 	"github.com/Pritam-deb/echo-sense/utils"
 )
 
@@ -21,5 +22,6 @@ func Download(url string) {
 	}
 
 	if strings.Contains(url, "track") {
+		spotify.DownloadSingleTrack(url, SONGS_DIR)
 	}
 }
