@@ -8,7 +8,16 @@ import (
 
 	"github.com/Pritam-deb/echo-sense/handlers"
 	"github.com/Pritam-deb/echo-sense/utils"
+
+	"github.com/joho/godotenv"
 )
+
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("No .env file found")
+	}
+}
 
 func main() {
 	// Entry point of the server application

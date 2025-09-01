@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 )
@@ -28,7 +29,9 @@ func GetLogger() *slog.Logger {
 }
 
 func GetEnv(key, defaultValue string) string {
+	fmt.Println("Fetching environment variable:", key)
 	value := os.Getenv(key)
+	fmt.Println("Value found:", value)
 	if value == "" {
 		return defaultValue
 	}

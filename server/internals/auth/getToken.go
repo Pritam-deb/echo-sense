@@ -1,12 +1,13 @@
 package auth
 
 import (
-	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/Pritam-deb/echo-sense/utils"
 )
@@ -54,22 +55,26 @@ func loadCreds() (*creds, error) {
 }
 
 func GetAccessToken() (string, error) {
+	fmt.Println("Getting access token...")
 	creds, err := loadCreds()
+	fmt.Println("Credentials loaded:", creds)
 	if err != nil {
 		return "", err
 	}
 	data := url.Values{}
-	data.Set("client_id", creds.ClientID)
-	data.Set("client_secret", creds.ClientSecret)
 	data.Set("grant_type", "client_credentials")
 
-	req, err := http.NewRequest("POST", tokenURL, bytes.NewBufferString(data.Encode()))
+	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.URL.RawQuery = data.Encode()
-
+	authHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(creds.ClientID+":"+creds.ClientSecret))
+	req.Header.Set("Authorization", authHeader)
+	// req.URL.RawQuery = data.Encode()
+	fmt.Println("Request prepared, sending...")
+	//print req to console for debugging
+	fmt.Println("Request:", req)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
