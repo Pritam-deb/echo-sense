@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Pritam-deb/echo-sense/utils"
 )
@@ -28,14 +29,14 @@ type tokenResponse struct {
 }
 
 type cachedToken struct {
-	Token  string `json:"access_token"`
-	Expiry int64  `json:"expiry"`
+	Token  string    `json:"access_token"`
+	Expiry time.Time `json:"expiry_at"`
 }
 
 func saveToken(token string, expiry int64) error {
 	ct := cachedToken{
 		Token:  token,
-		Expiry: expiry,
+		Expiry: time.Now().Add(time.Duration(expiry) * time.Second),
 	}
 	data, err := json.Marshal(ct)
 	if err != nil {
@@ -54,8 +55,28 @@ func loadCreds() (*creds, error) {
 	return &creds{ClientID: clientID, ClientSecret: clientSecret}, nil
 }
 
+func getCachedToken() (string, error) {
+	data, err := os.ReadFile(cachedTokenFile)
+	if err != nil {
+		return "", err
+	}
+	var ct cachedToken
+	if err := json.Unmarshal(data, &ct); err != nil {
+		return "", err
+	}
+	if time.Now().After(ct.Expiry) {
+		return "", fmt.Errorf("cached token expired")
+	}
+	return ct.Token, nil
+}
+
 func GetAccessToken() (string, error) {
 	fmt.Println("Getting access token...")
+	token, err := getCachedToken()
+	if err == nil && token != "" {
+		fmt.Println("Using cached token.")
+		return token, nil
+	}
 	creds, err := loadCreds()
 	fmt.Println("Credentials loaded:", creds)
 	if err != nil {

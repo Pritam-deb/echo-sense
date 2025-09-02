@@ -37,8 +37,7 @@ func hitSpotifyEndpoints(endpoint string) (int, string, error) {
 	if err != nil {
 		return 0, "", err
 	}
-	fmt.Println(string(body))
-	return resp.StatusCode, resp.Status, nil
+	return resp.StatusCode, string(body), nil
 }
 
 func GetTrackInfo(url string) (*Track, error) {
