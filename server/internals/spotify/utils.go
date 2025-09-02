@@ -1,6 +1,7 @@
 package spotify
 
 import (
+	"os"
 	"runtime"
 	"strings"
 )
@@ -17,4 +18,14 @@ func changeFileName(title, artist string) (string, string) {
 		artist = strings.ReplaceAll(artist, "/", "\\")
 	}
 	return title, artist
+}
+
+func GetFileSize(file string) (int64, error) {
+	fileInfo, err := os.Stat(file)
+	if err != nil {
+		return 0, err
+	}
+
+	size := int64(fileInfo.Size())
+	return size, nil
 }

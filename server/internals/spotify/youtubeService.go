@@ -20,23 +20,19 @@ type SearchResult struct {
 }
 
 func getYoutubeID(track Track) (string, error) {
-	fmt.Println("Getting YT ID for track:", track.Title, "by", track.Artist)
 	var durationMatchTolerance = 15 // seconds
 	songDuration := track.Duration
 	searchQuery := track.Title + " " + track.Artist
 
 	ytSearchRes, err := youtubeSearch(searchQuery, 4)
-	fmt.Println("search results:", ytSearchRes)
 	if err != nil {
 		return "", err
 	}
-
 	for _, item := range ytSearchRes {
-		fmt.Println("Evaluating item:", item.Title, "Duration:", item.Duration)
 		allowedDurationRangeStart := songDuration - durationMatchTolerance
 		allowedDurationRangeEnd := songDuration + durationMatchTolerance
 		resultDuration := convertStringDurationToSeconds(item.Duration)
-		if resultDuration >= allowedDurationRangeStart && resultDuration <= allowedDurationRangeEnd {
+		if resultDuration <= allowedDurationRangeEnd && resultDuration >= allowedDurationRangeStart {
 			return item.ID, nil
 		}
 	}
@@ -155,8 +151,6 @@ func youtubeSearch(searchQuery string, limitResult int) (results []*SearchResult
 			SourceName: "youtube",
 		})
 	})
-	fmt.Println("YouTube search results parsed, found:", len(results))
-	// fmt.Println("Results:", results)
 
 	if err != nil {
 		return nil, err
