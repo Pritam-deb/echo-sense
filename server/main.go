@@ -50,7 +50,6 @@ func main() {
 			os.Exit(1)
 		}
 		url := os.Args[2]
-		fmt.Println("Downloading from URL:", url)
 		handlers.Download(url)
 	}
 

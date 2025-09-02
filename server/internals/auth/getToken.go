@@ -71,14 +71,11 @@ func getCachedToken() (string, error) {
 }
 
 func GetAccessToken() (string, error) {
-	fmt.Println("Getting access token...")
 	token, err := getCachedToken()
 	if err == nil && token != "" {
-		fmt.Println("Using cached token.")
 		return token, nil
 	}
 	creds, err := loadCreds()
-	fmt.Println("Credentials loaded:", creds)
 	if err != nil {
 		return "", err
 	}
@@ -93,9 +90,7 @@ func GetAccessToken() (string, error) {
 	authHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(creds.ClientID+":"+creds.ClientSecret))
 	req.Header.Set("Authorization", authHeader)
 	// req.URL.RawQuery = data.Encode()
-	fmt.Println("Request prepared, sending...")
 	//print req to console for debugging
-	fmt.Println("Request:", req)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -114,7 +109,5 @@ func GetAccessToken() (string, error) {
 	if err := saveToken(tokenResp.AccessToken, int64(tokenResp.ExpiresIn)); err != nil {
 		return "", err
 	}
-	fmt.Println("Access token obtained and saved.")
-	fmt.Println("Token:", tokenResp.AccessToken)
 	return tokenResp.AccessToken, nil
 }

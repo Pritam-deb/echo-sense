@@ -1,6 +1,7 @@
 package spotify
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,8 +17,19 @@ type Track struct {
 	Duration             int // in seconds
 }
 
+func (t *Track) buildTrack() *Track {
+	track := &Track{
+		Title:    t.Title,
+		Artist:   t.Artist,
+		Album:    t.Album,
+		Artists:  t.Artists,
+		Year:     t.Year,
+		Duration: t.Duration,
+	}
+	return track
+}
+
 func hitSpotifyEndpoints(endpoint string) (int, string, error) {
-	fmt.Println("Hitting endpoint:", endpoint)
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return 0, "", err
@@ -48,18 +60,47 @@ func GetTrackInfo(url string) (*Track, error) {
 	matches := re.FindStringSubmatch(url)
 	var trackID string
 	if len(matches) > 1 {
-		fmt.Println("Track ID:", matches[1])
 		trackID = matches[1]
 	} else {
 		fmt.Println("No match found")
 	}
 	endpoint := baseUrl + trackID
-	statusCode, _, err := hitSpotifyEndpoints(endpoint)
+	statusCode, jsonResponse, err := hitSpotifyEndpoints(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error getting track info: %w", err)
 	}
 	if statusCode != 200 {
 		return nil, fmt.Errorf("error from spotify: %d", statusCode)
 	}
-	return &Track{}, nil
+
+	var result struct {
+		Name  string `json:"name"`
+		Album struct {
+			Name        string `json:"name"`
+			ReleaseDate string `json:"release_date"`
+		} `json:"album"`
+		Artists []struct {
+			Name string `json:"name"`
+		} `json:"artists"`
+		DurationMs int `json:"duration_ms"`
+	}
+	err = json.Unmarshal([]byte(jsonResponse), &result)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling track info: %w", err)
+	}
+	var allArtists []string
+	for _, artist := range result.Artists {
+		allArtists = append(allArtists, artist.Name)
+	}
+	track := &Track{
+		Title:    result.Name,
+		Album:    result.Album.Name,
+		Artists:  allArtists,
+		Artist:   allArtists[0],
+		Duration: result.DurationMs / 1000,
+	}
+	if len(result.Album.ReleaseDate) >= 4 {
+		fmt.Sscanf(result.Album.ReleaseDate, "%4d", &track.Year)
+	}
+	return track.buildTrack(), nil
 }
