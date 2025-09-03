@@ -29,3 +29,4 @@ spotify_token.json
 
 # all downloaded music
 *.m4a
+*.wav

@@ -34,3 +34,11 @@ func GetEnv(key, defaultValue string) string {
 	}
 	return value
 }
+
+func MoveFile(src, dst string) error {
+	err := os.Rename(src, dst)
+	if err != nil {
+		return err
+	}
+	return nil
+}

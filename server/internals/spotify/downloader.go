@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"sync"
 
+	wavservice "github.com/Pritam-deb/echo-sense/internals/wavService"
 	"github.com/Pritam-deb/echo-sense/utils"
 	"github.com/kkdai/youtube/v2"
 )
@@ -71,11 +72,24 @@ func TracksDownloader(tracks []Track, downloadPath string) (int, error) {
 				results <- 0
 				return
 			}
+			err = processAndSaveTrack(filePath, trackInfo.Title, trackInfo.Artist, ytID)
 		}(track)
 	}
 	wg.Wait()
 	close(results)
 	return downloadedCount, nil
+}
+
+func processAndSaveTrack(audioFilePath, songTitle, songArtist, ytID string) error {
+	logger := utils.GetLogger()
+	wavFilePath, err := wavservice.ConvertToWav(audioFilePath, 1)
+	if err != nil {
+		logger.Error("Failed to convert to WAV", "error", err, "audioFilePath", audioFilePath)
+		return err
+	}
+	fmt.Println("Converted to WAV:", wavFilePath)
+
+	return nil
 }
 
 func downloadAudioFromYT(id, path, filepath string) error {
