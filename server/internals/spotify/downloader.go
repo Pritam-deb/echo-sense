@@ -88,6 +88,11 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, ytID string) erro
 		return err
 	}
 	fmt.Println("Converted to WAV:", wavFilePath)
+	wavInfo, err := wavservice.ReadWavFile(wavFilePath)
+	if err != nil {
+		logger.Error("Failed to read WAV file", "error", err, "wavFilePath", wavFilePath)
+	}
+	fmt.Println("wav duration:", wavInfo.Duration, "seconds")
 
 	return nil
 }

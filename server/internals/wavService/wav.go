@@ -1,6 +1,8 @@
 package wavservice
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,6 +11,30 @@ import (
 
 	"github.com/Pritam-deb/echo-sense/utils"
 )
+
+type WavHeader struct {
+	ChunkID       [4]byte // "RIFF"
+	ChunkSize     uint32
+	Format        [4]byte // "WAVE"
+	Subchunk1ID   [4]byte // "fmt "
+	Subchunk1Size uint32  // 16 for PCM
+	AudioFormat   uint16  // PCM = 1
+	NumChannels   uint16
+	SampleRate    uint32
+	ByteRate      uint32
+	BlockAlign    uint16
+	BitsPerSample uint16
+	Subchunk2ID   [4]byte // "data"
+	Subchunk2Size uint32
+}
+
+type WavInformation struct {
+	NumChannels   uint16
+	SampleRate    uint32
+	BitsPerSample uint16
+	Duration      float64 // in seconds
+	Data          []byte
+}
 
 func ConvertToWav(inputFilePath string, channels int) (wavFilePath string, err error) {
 	_, err = os.Stat(inputFilePath)
@@ -38,4 +64,37 @@ func ConvertToWav(inputFilePath string, channels int) (wavFilePath string, err e
 	}
 	fmt.Println("WAV file created at:", outputFile)
 	return outputFile, nil
+}
+
+func ReadWavFile(fileName string) (*WavInformation, error) {
+	data, err := os.ReadFile(fileName)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) < 44 {
+		return nil, fmt.Errorf("file too small to be a valid WAV file")
+	}
+	var header WavHeader
+	err = binary.Read(bytes.NewReader(data[:44]), binary.LittleEndian, &header)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("WAV Header: %+v\n", header)
+
+	if string(header.ChunkID[:]) != "RIFF" || string(header.Format[:]) != "WAVE" || string(header.Subchunk1ID[:]) != "fmt " || header.AudioFormat != 1 {
+		return nil, fmt.Errorf("invalid WAV file format")
+	}
+
+	info := &WavInformation{
+		NumChannels:   header.NumChannels,
+		SampleRate:    header.SampleRate,
+		BitsPerSample: header.BitsPerSample,
+		Data:          data[44:],
+	}
+	fmt.Printf("WAV Info - Channels: %d, SampleRate: %d, BitsPerSample: %d, Duration: %.2f seconds\n", info.NumChannels, info.SampleRate, info.BitsPerSample, info.Duration)
+	if header.BitsPerSample != 16 {
+		return nil, fmt.Errorf("unsupported BitsPerSample: %d, only 16 is supported", header.BitsPerSample)
+	}
+	info.Duration = float64(len(info.Data)) / float64(int(header.NumChannels)*2*int(header.SampleRate))
+	return info, nil
 }
