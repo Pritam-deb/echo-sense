@@ -98,3 +98,19 @@ func ReadWavFile(fileName string) (*WavInformation, error) {
 	info.Duration = float64(len(info.Data)) / float64(int(header.NumChannels)*2*int(header.SampleRate))
 	return info, nil
 }
+
+func ConvertWavDataToSamples(wavData []byte) ([]float64, error) {
+	if len(wavData)%2 != 0 {
+		return nil, fmt.Errorf("wav data length is not even, cannot convert to 16-bit samples")
+	}
+
+	numSamples := len(wavData) / 2
+	samples := make([]float64, numSamples)
+
+	for i := 0; i < numSamples; i++ {
+		sample := int16(binary.LittleEndian.Uint16(wavData[i*2 : i*2+2]))
+		samples[i] = float64(sample) / 32768.0 // normalize to [-1.0, 1.0]
+	}
+
+	return samples, nil
+}

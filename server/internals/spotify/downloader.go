@@ -94,6 +94,13 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, ytID string) erro
 	}
 	fmt.Println("wav duration:", wavInfo.Duration, "seconds")
 
+	samples, err := wavservice.ConvertWavDataToSamples(wavInfo.Data)
+	if err != nil {
+		logger.Error("Failed to convert WAV data to samples", "error", err, "wavFilePath", wavFilePath)
+		return fmt.Errorf("Failed to convert WAV data to samples: %v", err)
+	}
+	fmt.Println("Number of samples:", len(samples))
+	fmt.Println("First 10 samples:", samples[:10])
 	return nil
 }
 
