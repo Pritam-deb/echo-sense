@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"sync"
 
+	recognisingalgorithm "github.com/Pritam-deb/echo-sense/internals/recognisingAlgorithm"
 	wavservice "github.com/Pritam-deb/echo-sense/internals/wavService"
 	"github.com/Pritam-deb/echo-sense/utils"
 	"github.com/kkdai/youtube/v2"
@@ -101,6 +102,26 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, ytID string) erro
 	}
 	fmt.Println("Number of samples:", len(samples))
 	fmt.Println("First 10 samples:", samples[:10])
+	spectrogram, err := recognisingalgorithm.Spectrogram(samples, int(wavInfo.SampleRate))
+	if err != nil {
+		logger.Error("Failed to compute spectrogram", "error", err, "wavFilePath", wavFilePath)
+		return fmt.Errorf("Failed to compute spectrogram: %v", err)
+	}
+	fmt.Println("Spectrogram computed with", len(spectrogram), "time frames")
+	err = utils.SaveSpectrogramImage(spectrogram, fmt.Sprintf("%s_spectrogram.png", songTitle), true)
+	if err != nil {
+		logger.Error("Failed to save spectrogram image", "error", err, "ytID", ytID)
+		return fmt.Errorf("Failed to save spectrogram image: %v", err)
+	}
+	//clean up temp files
+	// err = os.Remove(audioFilePath)
+	// if err != nil {
+	// 	logger.Warn("Failed to remove audio file", "error", err, "audioFilePath", audioFilePath)
+	// }
+	// err = os.Remove(wavFilePath)
+	// if err != nil {
+	// 	logger.Warn("Failed to remove WAV file", "error", err, "wavFilePath", wavFilePath)
+	// }
 	return nil
 }
 
@@ -138,6 +159,7 @@ func downloadAudioFromYT(id, path, filepath string) error {
 	}
 	var fileSize int64
 	//to make sure file size is not 0 and file is completely written
+	//try not to use busy wait here
 	for fileSize == 0 {
 		stream, _, err := youtubeClient.GetStream(video, &formats[0])
 		if err != nil {
