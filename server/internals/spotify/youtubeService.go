@@ -22,7 +22,7 @@ type SearchResult struct {
 func getYoutubeID(track Track) (string, error) {
 	var durationMatchTolerance = 15 // seconds
 	songDuration := track.Duration
-	searchQuery := track.Title + " " + track.Artist
+	searchQuery := track.Title + " " + track.Artist + "audio"
 
 	ytSearchRes, err := youtubeSearch(searchQuery, 4)
 	if err != nil {

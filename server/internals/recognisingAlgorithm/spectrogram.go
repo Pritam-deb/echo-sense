@@ -6,18 +6,18 @@ import (
 )
 
 const (
-	DSPratio     = 4
-	maxFrequency = 5000
-	freqBinSize  = 1024
-	hopSize      = freqBinSize / 32
+	DSPratio    = 4
+	freqBinSize = 1024
+	hopSize     = freqBinSize / 32
 )
 
 func Spectrogram(sample []float64, sampleRate int) ([][]complex128, error) {
 	// Compute the spectrogram using Short-Time Fourier Transform (STFT))
 	downSampled, err := DownSampleProper(sampleRate, sampleRate/DSPratio, sample)
 	// utils.PlotWaveform(sample, downSampled, "waveform.png")
+
 	if err != nil {
-		return nil, errors.New("error downsamoling the audio sample.")
+		return nil, errors.New("error downsampling the audio sample.")
 	}
 	windowNum := len(downSampled) / (freqBinSize - hopSize)
 	spectrogram := make([][]complex128, windowNum)
@@ -42,8 +42,6 @@ func Spectrogram(sample []float64, sampleRate int) ([][]complex128, error) {
 	}
 	return spectrogram, nil
 }
-
-//
 
 // Low-pass FIR filter generator (windowed sinc)
 func lowPassFIR(cutoff, sampleRate float64, taps int) []float64 {
@@ -101,41 +99,3 @@ func DownSampleProper(originalSampleRate, targetSampleRate int, input []float64)
 	}
 	return output, nil
 }
-
-// func LowPassFilter(cutOffFreq, sampleRate float64, sampleInput []float64) []float64 {
-// 	rc := 1.0 / (2 * math.Pi * cutOffFreq)
-// 	dt := 1.0 / sampleRate
-// 	alpha := dt / (rc + dt)
-
-// 	sampleOutput := make([]float64, len(sampleInput))
-// 	sampleOutput[0] = sampleInput[0] // Initialize the first output sample
-// 	previousOutput := 0.0
-// 	// The standard low-pass filter formula is:
-// 	// y[i] = y[i-1] + alpha * (x[i] - y[i-1])
-// 	// where:
-// 	// y[i] is the current output sample
-// 	// y[i-1] is the previous output sample
-// 	// x[i] is the current input sample
-// 	// alpha is the smoothing factor, calculated as:
-// 	// alpha = dt / (rc + dt)
-// 	// rc = 1 / (2 * π * cutOffFreq)
-// 	// dt = 1 / sampleRate
-// 	// However,
-// 	// here we are using a slightly different formula
-// 	// y[i] = (x[i] * alpha) + (y[i-1] * (1 - alpha))
-// 	// which is mathematically equivalent to the above formula
-// 	// but avoids the subtraction operation which can introduce numerical instability
-// 	// especially when x[i] and y[i-1] are very close in value
-// 	// this is a common technique used in digital signal processing to improve stability
-
-// 	// using the above formula
-// 	for i, v := range sampleInput {
-// 		if i == 0 {
-// 			sampleOutput[i] = v * alpha
-// 		} else {
-// 			sampleOutput[i] = (v * alpha) + (previousOutput * (1 - alpha))
-// 		}
-// 		previousOutput = sampleOutput[i]
-// 	}
-// 	return sampleOutput
-// }

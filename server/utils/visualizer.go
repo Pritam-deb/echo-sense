@@ -91,7 +91,7 @@ func PlotWaveform(original []float64, downsampled []float64, filename string) er
 	p.Legend.Add("Original", origLine)
 	p.Legend.Add("Downsampled", downLine)
 
-	if err := p.Save(16*vg.Inch, 6*vg.Inch, filename); err != nil {
+	if err := p.Save(8*vg.Inch, 4*vg.Inch, filename); err != nil {
 		return err
 	}
 	return nil
