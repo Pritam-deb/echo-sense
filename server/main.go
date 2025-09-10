@@ -9,6 +9,7 @@ import (
 	"github.com/Pritam-deb/echo-sense/handlers"
 	"github.com/Pritam-deb/echo-sense/utils"
 
+	"github.com/Pritam-deb/echo-sense/db"
 	"github.com/joho/godotenv"
 )
 
@@ -41,6 +42,8 @@ func main() {
 		ctx := context.Background()
 		logger.ErrorContext(ctx, "Failed to create directory for songs", slog.Any("error", err))
 	}
+
+	db.Connect()
 
 	switch os.Args[1] {
 	case "download":
