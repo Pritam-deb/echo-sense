@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/Pritam-deb/echo-sense/db"
+	"github.com/Pritam-deb/echo-sense/db/models"
 	recognisingalgorithm "github.com/Pritam-deb/echo-sense/internals/recognisingAlgorithm"
 	wavservice "github.com/Pritam-deb/echo-sense/internals/wavService"
 	"github.com/Pritam-deb/echo-sense/utils"
@@ -73,7 +75,7 @@ func TracksDownloader(tracks []Track, downloadPath string) (int, error) {
 				results <- 0
 				return
 			}
-			err = processAndSaveTrack(filePath, trackInfo.Title, trackInfo.Artist, ytID)
+			err = processAndSaveTrack(filePath, trackInfo.Title, trackInfo.Artist, track.Album, ytID)
 		}(track)
 	}
 	wg.Wait()
@@ -81,7 +83,8 @@ func TracksDownloader(tracks []Track, downloadPath string) (int, error) {
 	return downloadedCount, nil
 }
 
-func processAndSaveTrack(audioFilePath, songTitle, songArtist, ytID string) error {
+func processAndSaveTrack(audioFilePath, songTitle, songArtist, songAlbum, ytID string) error {
+
 	logger := utils.GetLogger()
 	wavFilePath, err := wavservice.ConvertToWav(audioFilePath, 1)
 	if err != nil {
@@ -108,11 +111,27 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, ytID string) erro
 		return fmt.Errorf("Failed to compute spectrogram: %v", err)
 	}
 	fmt.Println("Spectrogram computed with", len(spectrogram), "time frames")
-	err = utils.SaveSpectrogramImage(spectrogram, fmt.Sprintf("%s_spectrogram.png", songTitle), true)
-	if err != nil {
-		logger.Error("Failed to save spectrogram image", "error", err, "ytID", ytID)
-		return fmt.Errorf("Failed to save spectrogram image: %v", err)
+	//to view the spectrogram image, uncomment the lines below
+	// err = utils.SaveSpectrogramImage(spectrogram, fmt.Sprintf("%s_spectrogram.png", songTitle), true)
+	// if err != nil {
+	// 	logger.Error("Failed to save spectrogram image", "error", err, "ytID", ytID)
+	// 	return fmt.Errorf("Failed to save spectrogram image: %v", err)
+	// }
+
+	song := models.Song{
+		Title:     songTitle,
+		Artist:    songArtist,
+		Album:     songAlbum,
+		YoutubeID: ytID,
+		SongKey:   utils.GenerateSongKey(songArtist, songTitle),
+		Duration:  int(wavInfo.Duration),
 	}
+
+	if err := db.DB.Create(&song).Error; err != nil {
+		logger.Error("Failed to save song to DB", "error", err)
+		return err
+	}
+
 	//clean up temp files
 	// err = os.Remove(audioFilePath)
 	// if err != nil {
