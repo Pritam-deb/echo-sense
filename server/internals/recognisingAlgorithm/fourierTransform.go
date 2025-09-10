@@ -1,6 +1,8 @@
 package recognisingalgorithm
 
-import "math"
+import (
+	"math"
+)
 
 func fftRealToComplex(input []float64) []complex128 {
 	complexArray := make([]complex128, len(input))

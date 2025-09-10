@@ -131,16 +131,49 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, songAlbum, ytID s
 		logger.Error("Failed to save song to DB", "error", err)
 		return err
 	}
+	logger.Info("Song saved to DB", "youtube_id", ytID)
+	peaks := recognisingalgorithm.ExtractPeaks(spectrogram, wavInfo.Duration)
+	fingerprints := recognisingalgorithm.Fingerprint(peaks, song.ID.String())
+	fmt.Println("Generated", len(fingerprints), "fingerprints")
 
-	//clean up temp files
-	// err = os.Remove(audioFilePath)
-	// if err != nil {
-	// 	logger.Warn("Failed to remove audio file", "error", err, "audioFilePath", audioFilePath)
-	// }
-	// err = os.Remove(wavFilePath)
-	// if err != nil {
-	// 	logger.Warn("Failed to remove WAV file", "error", err, "wavFilePath", wavFilePath)
-	// }
+	// peaks := recognisingalgorithm.ExtractPeaks(spectrogram, wavInfo.Duration, int(wavInfo.SampleRate))
+	// pairs := recognisingalgorithm.BuildConstellationMap(peaks, 3.0)
+	// fingerprints := recognisingalgorithm.GenerateFingerprints(pairs)
+
+	var audioFingerprints []models.AudioFingerprint
+	for address, fp := range fingerprints {
+		audioFingerprints = append(audioFingerprints, models.AudioFingerprint{
+			Address:    int(address),
+			AnchorTime: int(fp.AnchorTime),
+			SongID:     song.ID,
+		})
+	}
+
+	if len(audioFingerprints) > 0 {
+		batchSize := 1000
+		for i := 0; i < len(audioFingerprints); i += batchSize {
+			end := i + batchSize
+			if end > len(audioFingerprints) {
+				end = len(audioFingerprints)
+			}
+			if err := db.DB.Create(audioFingerprints[i:end]).Error; err != nil {
+				logger.Error("Failed to save batch of fingerprints", "error", err)
+				return err
+			}
+		}
+	} else {
+		fmt.Println("No fingerprints generated for song:", songTitle)
+	}
+
+	// clean up temp files
+	err = os.Remove(audioFilePath)
+	if err != nil {
+		logger.Warn("Failed to remove audio file", "error", err, "audioFilePath", audioFilePath)
+	}
+	err = os.Remove(wavFilePath)
+	if err != nil {
+		logger.Warn("Failed to remove WAV file", "error", err, "wavFilePath", wavFilePath)
+	}
 	return nil
 }
 
