@@ -118,12 +118,12 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, songAlbum, ytID s
 		freqBinSize = 1024
 		hopSize     = freqBinSize / 32
 	)
-	utils.SaveSpectrogramWithLabels(spectrogram, fmt.Sprintf("%s_spectrogram.png", songTitle), int(wavInfo.SampleRate), hopSize, true)
-
-	if err != nil {
-		logger.Error("Failed to save spectrogram image", "error", err, "ytID", ytID)
-		return fmt.Errorf("Failed to save spectrogram image: %v", err)
-	}
+	utils.SaveSpectrogramWithLabels(spectrogram, fmt.Sprintf("%s_spectrogram.png", songTitle), int(wavInfo.SampleRate), hopSize, wavInfo.Duration, true)
+	utils.VerifySpectrogramCompleteness(spectrogram, samples, int(wavInfo.SampleRate), hopSize)
+	// if err != nil {
+	// 	logger.Error("Failed to save spectrogram image", "error", err, "ytID", ytID)
+	// 	return fmt.Errorf("Failed to save spectrogram image: %v", err)
+	// }
 
 	song := models.Song{
 		Title:     songTitle,
@@ -147,30 +147,30 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, songAlbum, ytID s
 	// pairs := recognisingalgorithm.BuildConstellationMap(peaks, 3.0)
 	// fingerprints := recognisingalgorithm.GenerateFingerprints(pairs)
 
-	var audioFingerprints []models.AudioFingerprint
-	for address, fp := range fingerprints {
-		audioFingerprints = append(audioFingerprints, models.AudioFingerprint{
-			Address:    int(address),
-			AnchorTime: int(fp.AnchorTime),
-			SongID:     song.ID,
-		})
-	}
+	// var audioFingerprints []models.AudioFingerprint
+	// for address, fp := range fingerprints {
+	// 	audioFingerprints = append(audioFingerprints, models.AudioFingerprint{
+	// 		Address:    int(address),
+	// 		AnchorTime: int(fp.AnchorTime),
+	// 		SongID:     song.ID,
+	// 	})
+	// }
 
-	if len(audioFingerprints) > 0 {
-		batchSize := 1000
-		for i := 0; i < len(audioFingerprints); i += batchSize {
-			end := i + batchSize
-			if end > len(audioFingerprints) {
-				end = len(audioFingerprints)
-			}
-			if err := db.DB.Create(audioFingerprints[i:end]).Error; err != nil {
-				logger.Error("Failed to save batch of fingerprints", "error", err)
-				return err
-			}
-		}
-	} else {
-		fmt.Println("No fingerprints generated for song:", songTitle)
-	}
+	// if len(audioFingerprints) > 0 {
+	// 	batchSize := 1000
+	// 	for i := 0; i < len(audioFingerprints); i += batchSize {
+	// 		end := i + batchSize
+	// 		if end > len(audioFingerprints) {
+	// 			end = len(audioFingerprints)
+	// 		}
+	// 		if err := db.DB.Create(audioFingerprints[i:end]).Error; err != nil {
+	// 			logger.Error("Failed to save batch of fingerprints", "error", err)
+	// 			return err
+	// 		}
+	// 	}
+	// } else {
+	// 	fmt.Println("No fingerprints generated for song:", songTitle)
+	// }
 
 	// clean up temp files
 	err = os.Remove(audioFilePath)

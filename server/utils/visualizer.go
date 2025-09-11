@@ -118,9 +118,9 @@ func heatmapColor(v float64) color.RGBA {
 }
 
 // SaveSpectrogramImage saves spectrogram as grayscale or heatmap
-func SaveSpectrogramWithLabels(spectrogram [][]complex128, filename string, sampleRate, hopSize int, colored bool) error {
-	height := len(spectrogram[0]) // frequency bins
-	width := len(spectrogram)     // time frames
+func SaveSpectrogramWithLabels(spectrogram [][]complex128, filename string, sampleRate, hopSize int, trackDuration float64, colored bool) error {
+	height := len(spectrogram[0]) / 2 // frequency bins
+	width := len(spectrogram)         // time frames
 
 	// Step 1: create spectrogram as image
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
@@ -179,11 +179,12 @@ func SaveSpectrogramWithLabels(spectrogram [][]complex128, filename string, samp
 	}
 
 	// X-axis (time)
-	totalTime := float64(width*hopSize) / float64(sampleRate)
-	for i := 0; i <= 10; i++ {
-		x := margin + int(float64(width)*float64(i)/10.0)
-		time := totalTime * float64(i) / 10.0
-		dc.DrawStringAnchored(fmt.Sprintf("%.2fs", time), float64(x), float64(height+40), 0.5, 0.5)
+	totalTime := trackDuration
+	fmt.Println("total time in image: ", totalTime)
+	for sec := 0; sec <= int(totalTime); sec++ {
+		time := float64(sec)
+		x := margin + int(float64(width)*time/totalTime)
+		dc.DrawStringAnchored(fmt.Sprintf("%ds", sec), float64(x), float64(height+40), 0.5, 0.5)
 		dc.DrawLine(float64(x), float64(height+20), float64(x), float64(height+25))
 		dc.Stroke()
 	}
@@ -202,4 +203,29 @@ func SaveSpectrogramWithLabels(spectrogram [][]complex128, filename string, samp
 
 	// Step 3: Save
 	return dc.SavePNG(filename)
+}
+
+func VerifySpectrogramCompleteness(spectrogram [][]complex128,
+	originalAudioSamples []float64, sampleRate, hopSize int) {
+
+	// Calculate expected vs actual
+	expectedFrames := (len(originalAudioSamples)-2048)/hopSize + 1
+	actualFrames := len(spectrogram)
+
+	expectedDuration := float64(len(originalAudioSamples)) / float64(sampleRate)
+	actualDuration := float64(actualFrames*hopSize) / float64(sampleRate)
+
+	fmt.Printf("=== Spectrogram Completeness Check ===\n")
+	fmt.Printf("Expected frames: %d | Actual frames: %d\n", expectedFrames, actualFrames)
+	fmt.Printf("Expected duration: %.2fs | Actual duration: %.2fs\n",
+		expectedDuration, actualDuration)
+
+	completeness := float64(actualFrames) / float64(expectedFrames) * 100
+	fmt.Printf("Coverage: %.1f%%\n", completeness)
+
+	if completeness < 95 {
+		fmt.Printf("⚠️  WARNING: Spectrogram covers only %.1f%% of the track!\n", completeness)
+	} else {
+		fmt.Printf("✅ Spectrogram covers the complete track\n")
+	}
 }

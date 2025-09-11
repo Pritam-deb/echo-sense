@@ -13,36 +13,41 @@ const (
 )
 
 func Spectrogram(sample []float64, sampleRate int) ([][]complex128, error) {
-	// Compute the spectrogram using Short-Time Fourier Transform (STFT))
+	fmt.Printf("duration of the track is : %v\n", len(sample)/sampleRate)
+
+	// Downsample first
 	downSampled, err := DownSampleProper(sampleRate, sampleRate/DSPratio, sample)
-	// utils.PlotWaveform(sample, downSampled, "waveform.png")
-
 	if err != nil {
-		return nil, errors.New("error downsampling the audio sample.")
+		return nil, errors.New("error downsampling the audio sample")
 	}
-	windowNum := len(downSampled) / (freqBinSize - hopSize)
-	spectrogram := make([][]complex128, windowNum)
-	window := make([]float64, freqBinSize)
+
+	// Frame params
+	frameSize := freqBinSize // must be power of 2 for FFT
+	hop := hopSize
+	window := make([]float64, frameSize)
 	for i := range window {
-		window[i] = 0.54 - 0.46*math.Cos(2*math.Pi*float64(i)/float64(freqBinSize-1)) // Hamming window
+		window[i] = 0.54 - 0.46*math.Cos(2*math.Pi*float64(i)/float64(frameSize-1)) // Hamming
 	}
-	// apply STFT
-	for i := 0; i < windowNum; i++ {
-		start := i * hopSize
-		end := start + freqBinSize
-		if end > len(downSampled) {
-			end = len(downSampled)
-		}
-		bin := make([]float64, freqBinSize)
-		copy(bin, downSampled[start:end])
 
-		for j := range window {
-			bin[j] *= window[j]
+	// Number of frames
+	numFrames := 1 + (len(downSampled)-frameSize)/hop
+	spectrogram := make([][]complex128, numFrames)
+
+	for i := 0; i < numFrames; i++ {
+		start := i * hop
+		frame := make([]float64, frameSize)
+		copy(frame, downSampled[start:start+frameSize])
+
+		// Apply window
+		for j := range frame {
+			frame[j] *= window[j]
 		}
-		spectrogram[i] = fftRealToComplex(bin)
+
+		// FFT
+		spectrogram[i] = fftRealToComplex(frame)
 	}
-	fmt.Println("Generating IMage of spectrogram!")
 
+	fmt.Println("Spectrogram frames:", len(spectrogram))
 	return spectrogram, nil
 }
 
