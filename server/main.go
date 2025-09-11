@@ -54,6 +54,15 @@ func main() {
 		}
 		url := os.Args[2]
 		handlers.Download(url)
+
+	case "search":
+		if len(os.Args) < 3 {
+			fmt.Println("Expected path after 'search'.")
+			fmt.Println("Example: go run main.go search path/of/*.wav")
+			os.Exit(1)
+		}
+		path := os.Args[2]
+		handlers.Search(path)
 	}
 
 }

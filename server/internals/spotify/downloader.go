@@ -110,13 +110,20 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, songAlbum, ytID s
 		logger.Error("Failed to compute spectrogram", "error", err, "wavFilePath", wavFilePath)
 		return fmt.Errorf("Failed to compute spectrogram: %v", err)
 	}
-	fmt.Println("Spectrogram computed with", len(spectrogram), "time frames")
-	//to view the spectrogram image, uncomment the lines below
-	// err = utils.SaveSpectrogramImage(spectrogram, fmt.Sprintf("%s_spectrogram.png", songTitle), true)
-	// if err != nil {
-	// 	logger.Error("Failed to save spectrogram image", "error", err, "ytID", ytID)
-	// 	return fmt.Errorf("Failed to save spectrogram image: %v", err)
-	// }
+	// fmt.Println("Spectrogram computed with", len(spectrogram), "time frames")
+	// //to view the spectrogram image, uncomment the lines below
+	// err = utils.SaveSpectrogramImage(spectrogram, int(wavInfo.SampleRate), fmt.Sprintf("%s_spectrogram.png", songTitle))
+	const (
+		DSPratio    = 4
+		freqBinSize = 1024
+		hopSize     = freqBinSize / 32
+	)
+	utils.SaveSpectrogramWithLabels(spectrogram, fmt.Sprintf("%s_spectrogram.png", songTitle), int(wavInfo.SampleRate), hopSize, true)
+
+	if err != nil {
+		logger.Error("Failed to save spectrogram image", "error", err, "ytID", ytID)
+		return fmt.Errorf("Failed to save spectrogram image: %v", err)
+	}
 
 	song := models.Song{
 		Title:     songTitle,
@@ -170,10 +177,10 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, songAlbum, ytID s
 	if err != nil {
 		logger.Warn("Failed to remove audio file", "error", err, "audioFilePath", audioFilePath)
 	}
-	err = os.Remove(wavFilePath)
-	if err != nil {
-		logger.Warn("Failed to remove WAV file", "error", err, "wavFilePath", wavFilePath)
-	}
+	// err = os.Remove(wavFilePath)
+	// if err != nil {
+	// 	logger.Warn("Failed to remove WAV file", "error", err, "wavFilePath", wavFilePath)
+	// }
 	return nil
 }
 

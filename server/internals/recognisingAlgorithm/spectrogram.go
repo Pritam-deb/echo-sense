@@ -2,6 +2,7 @@ package recognisingalgorithm
 
 import (
 	"errors"
+	"fmt"
 	"math"
 )
 
@@ -40,6 +41,8 @@ func Spectrogram(sample []float64, sampleRate int) ([][]complex128, error) {
 		}
 		spectrogram[i] = fftRealToComplex(bin)
 	}
+	fmt.Println("Generating IMage of spectrogram!")
+
 	return spectrogram, nil
 }
 

@@ -25,3 +25,7 @@ func Download(url string) {
 		spotify.DownloadSingleTrack(url, SONGS_DIR)
 	}
 }
+
+func Search(wavPath string) {
+
+}

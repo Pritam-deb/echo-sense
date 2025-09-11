@@ -2,13 +2,16 @@ package utils
 
 import (
 	"encoding/csv"
+	"fmt"
 	"image"
 	"image/color"
-	"image/png"
+
+	// "image/png"
 	"math"
 	"os"
 	"strconv"
 
+	"github.com/fogleman/gg"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
@@ -115,14 +118,13 @@ func heatmapColor(v float64) color.RGBA {
 }
 
 // SaveSpectrogramImage saves spectrogram as grayscale or heatmap
-func SaveSpectrogramImage(spectrogram [][]complex128, filename string, colored bool) error {
+func SaveSpectrogramWithLabels(spectrogram [][]complex128, filename string, sampleRate, hopSize int, colored bool) error {
 	height := len(spectrogram[0]) // frequency bins
 	width := len(spectrogram)     // time frames
 
-	// Create RGBA image (for both grayscale and color)
+	// Step 1: create spectrogram as image
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
-	// Find max magnitude for normalization
 	maxVal := 0.0
 	mags := make([][]float64, width)
 	for t := 0; t < width; t++ {
@@ -138,7 +140,6 @@ func SaveSpectrogramImage(spectrogram [][]complex128, filename string, colored b
 		}
 	}
 
-	// Fill image
 	for t := 0; t < width; t++ {
 		for f := 0; f < height; f++ {
 			val := mags[t][f] / maxVal
@@ -151,12 +152,54 @@ func SaveSpectrogramImage(spectrogram [][]complex128, filename string, colored b
 		}
 	}
 
-	// Save to file
-	outFile, err := os.Create(filename)
-	if err != nil {
+	// Step 2: use gg to draw labels + embed image
+	margin := 80
+	canvasW := width + margin + 20
+	canvasH := height + margin + 20
+	dc := gg.NewContext(canvasW, canvasH)
+
+	// Background
+	dc.SetRGB(1, 1, 1)
+	dc.Clear()
+
+	// Draw spectrogram image into canvas
+	dc.DrawImageAnchored(img, margin, 20, 0, 0)
+
+	// Axes
+	dc.SetRGB(0, 0, 0)
+	dc.SetLineWidth(1)
+	dc.DrawLine(float64(margin), 20, float64(margin), float64(height+20))
+	dc.DrawLine(float64(margin), float64(height+20), float64(canvasW-20), float64(height+20))
+	dc.Stroke()
+
+	// Labels
+	dc.SetRGB(0, 0, 0)
+	if err := dc.LoadFontFace("/System/Library/Fonts/Supplemental/Arial.ttf", 12); err != nil {
 		return err
 	}
-	defer outFile.Close()
 
-	return png.Encode(outFile, img)
+	// X-axis (time)
+	totalTime := float64(width*hopSize) / float64(sampleRate)
+	for i := 0; i <= 10; i++ {
+		x := margin + int(float64(width)*float64(i)/10.0)
+		time := totalTime * float64(i) / 10.0
+		dc.DrawStringAnchored(fmt.Sprintf("%.2fs", time), float64(x), float64(height+40), 0.5, 0.5)
+		dc.DrawLine(float64(x), float64(height+20), float64(x), float64(height+25))
+		dc.Stroke()
+	}
+	dc.DrawStringAnchored("Time (s)", float64(margin+width/2), float64(height+65), 0.5, 0.5)
+
+	// Y-axis (frequency)
+	maxFreq := sampleRate / 2
+	for i := 0; i <= 10; i++ {
+		y := 20 + height - int(float64(height)*float64(i)/10.0)
+		freq := float64(maxFreq) * float64(i) / 10.0
+		dc.DrawStringAnchored(fmt.Sprintf("%.0f Hz", freq), float64(margin-10), float64(y), 1, 0.5)
+		dc.DrawLine(float64(margin-5), float64(y), float64(margin), float64(y))
+		dc.Stroke()
+	}
+	dc.DrawStringAnchored("Frequency (Hz)", 20, float64(height/2+20), 0.5, 0.5)
+
+	// Step 3: Save
+	return dc.SavePNG(filename)
 }
