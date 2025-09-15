@@ -2,41 +2,44 @@ package recognisingalgorithm
 
 import (
 	"math"
+	"math/cmplx"
 )
 
-func fftRealToComplex(input []float64) []complex128 {
-	complexArray := make([]complex128, len(input))
-	for i, v := range input {
-		complexArray[i] = complex(v, 0)
+func fftRealToComplex(x []float64) []complex128 {
+	N := len(x)
+	// Convert real input to complex
+	c := make([]complex128, N)
+	for i := range x {
+		c[i] = complex(x[i], 0)
 	}
 
-	fftArray := make([]complex128, len(complexArray))
-	copy(fftArray, complexArray)
-	return recursiveFFT(fftArray)
+	return fft(c)
 }
 
-func recursiveFFT(complexArray []complex128) []complex128 {
-	N := len(complexArray)
+func fft(x []complex128) []complex128 {
+	N := len(x)
 	if N <= 1 {
-		return complexArray
+		return x
 	}
 
+	// Split even and odd
 	even := make([]complex128, N/2)
 	odd := make([]complex128, N/2)
 	for i := 0; i < N/2; i++ {
-		even[i] = complexArray[2*i]
-		odd[i] = complexArray[2*i+1]
+		even[i] = x[2*i]
+		odd[i] = x[2*i+1]
 	}
 
-	even = recursiveFFT(even)
-	odd = recursiveFFT(odd)
+	// Recursive FFT
+	Feven := fft(even)
+	Fodd := fft(odd)
 
-	fftResult := make([]complex128, N)
+	// Combine
+	combined := make([]complex128, N)
 	for k := 0; k < N/2; k++ {
-		t := complex(math.Cos(-2*math.Pi*float64(k)/float64(N)), math.Sin(-2*math.Pi*float64(k)/float64(N)))
-		fftResult[k] = even[k] + t*odd[k]
-		fftResult[k+N/2] = even[k] - t*odd[k]
+		twiddle := cmplx.Exp(complex(0, -2*math.Pi*float64(k)/float64(N)))
+		combined[k] = Feven[k] + twiddle*Fodd[k]
+		combined[k+N/2] = Feven[k] - twiddle*Fodd[k]
 	}
-
-	return fftResult
+	return combined
 }

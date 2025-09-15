@@ -39,7 +39,6 @@ func DownloadSingleTrack(url string, downloadPath string) {
 }
 
 func TracksDownloader(tracks []Track, downloadPath string) (int, error) {
-	fmt.Println("Starting download of", len(tracks), "tracks to", downloadPath)
 	var downloadedCount int
 	// var downloadedTracks []string
 
@@ -53,7 +52,6 @@ func TracksDownloader(tracks []Track, downloadPath string) (int, error) {
 
 		wg.Add(1)
 		go func(track Track) {
-			fmt.Println("Inside goroutine for track!")
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
@@ -91,7 +89,7 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, songAlbum, ytID s
 		logger.Error("Failed to convert to WAV", "error", err, "audioFilePath", audioFilePath)
 		return err
 	}
-	fmt.Println("Converted to WAV:", wavFilePath)
+	// fmt.Println("Converted to WAV:", wavFilePath)
 	wavInfo, err := wavservice.ReadWavFile(wavFilePath)
 	if err != nil {
 		logger.Error("Failed to read WAV file", "error", err, "wavFilePath", wavFilePath)
@@ -104,7 +102,7 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, songAlbum, ytID s
 		return fmt.Errorf("Failed to convert WAV data to samples: %v", err)
 	}
 	fmt.Println("Number of samples:", len(samples))
-	fmt.Println("First 10 samples:", samples[:10])
+	// fmt.Println("First 64 samples:", samples[:64])
 	spectrogram, err := recognisingalgorithm.Spectrogram(samples, int(wavInfo.SampleRate))
 	if err != nil {
 		logger.Error("Failed to compute spectrogram", "error", err, "wavFilePath", wavFilePath)
@@ -113,17 +111,17 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, songAlbum, ytID s
 	// fmt.Println("Spectrogram computed with", len(spectrogram), "time frames")
 	// //to view the spectrogram image, uncomment the lines below
 	// err = utils.SaveSpectrogramImage(spectrogram, int(wavInfo.SampleRate), fmt.Sprintf("%s_spectrogram.png", songTitle))
-	const (
-		DSPratio    = 4
-		freqBinSize = 1024
-		hopSize     = freqBinSize / 32
-	)
-	utils.SaveSpectrogramWithLabels(spectrogram, fmt.Sprintf("%s_spectrogram.png", songTitle), int(wavInfo.SampleRate), hopSize, true)
-
-	if err != nil {
-		logger.Error("Failed to save spectrogram image", "error", err, "ytID", ytID)
-		return fmt.Errorf("Failed to save spectrogram image: %v", err)
-	}
+	// const (
+	// 	DSPratio    = 4
+	// 	freqBinSize = 1024
+	// 	hopSize     = freqBinSize / 32
+	// )
+	// utils.SaveSpectrogramWithLabels(spectrogram, fmt.Sprintf("%s_spectrogram.png", songTitle), int(wavInfo.SampleRate), hopSize, wavInfo.Duration, true)
+	// utils.VerifySpectrogramCompleteness(spectrogram, samples, int(wavInfo.SampleRate), hopSize)
+	// if err != nil {
+	// 	logger.Error("Failed to save spectrogram image", "error", err, "ytID", ytID)
+	// 	return fmt.Errorf("Failed to save spectrogram image: %v", err)
+	// }
 
 	song := models.Song{
 		Title:     songTitle,
@@ -141,46 +139,45 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, songAlbum, ytID s
 	logger.Info("Song saved to DB", "youtube_id", ytID)
 	peaks := recognisingalgorithm.ExtractPeaks(spectrogram, wavInfo.Duration)
 	fingerprints := recognisingalgorithm.Fingerprint(peaks, song.ID.String())
-	fmt.Println("Generated", len(fingerprints), "fingerprints")
 
 	// peaks := recognisingalgorithm.ExtractPeaks(spectrogram, wavInfo.Duration, int(wavInfo.SampleRate))
 	// pairs := recognisingalgorithm.BuildConstellationMap(peaks, 3.0)
 	// fingerprints := recognisingalgorithm.GenerateFingerprints(pairs)
+	fmt.Println("Generated", len(fingerprints), "fingerprints")
+	// var audioFingerprints []models.AudioFingerprint
+	// for address, fp := range fingerprints {
+	// 	audioFingerprints = append(audioFingerprints, models.AudioFingerprint{
+	// 		Address:    int(address),
+	// 		AnchorTime: int(fp.AnchorTime),
+	// 		SongID:     song.ID,
+	// 	})
+	// }
 
-	var audioFingerprints []models.AudioFingerprint
-	for address, fp := range fingerprints {
-		audioFingerprints = append(audioFingerprints, models.AudioFingerprint{
-			Address:    int(address),
-			AnchorTime: int(fp.AnchorTime),
-			SongID:     song.ID,
-		})
-	}
-
-	if len(audioFingerprints) > 0 {
-		batchSize := 1000
-		for i := 0; i < len(audioFingerprints); i += batchSize {
-			end := i + batchSize
-			if end > len(audioFingerprints) {
-				end = len(audioFingerprints)
-			}
-			if err := db.DB.Create(audioFingerprints[i:end]).Error; err != nil {
-				logger.Error("Failed to save batch of fingerprints", "error", err)
-				return err
-			}
-		}
-	} else {
-		fmt.Println("No fingerprints generated for song:", songTitle)
-	}
+	// if len(audioFingerprints) > 0 {
+	// 	batchSize := 1000
+	// 	for i := 0; i < len(audioFingerprints); i += batchSize {
+	// 		end := i + batchSize
+	// 		if end > len(audioFingerprints) {
+	// 			end = len(audioFingerprints)
+	// 		}
+	// 		if err := db.DB.Create(audioFingerprints[i:end]).Error; err != nil {
+	// 			logger.Error("Failed to save batch of fingerprints", "error", err)
+	// 			return err
+	// 		}
+	// 	}
+	// } else {
+	// 	fmt.Println("No fingerprints generated for song:", songTitle)
+	// }
 
 	// clean up temp files
 	err = os.Remove(audioFilePath)
 	if err != nil {
 		logger.Warn("Failed to remove audio file", "error", err, "audioFilePath", audioFilePath)
 	}
-	// err = os.Remove(wavFilePath)
-	// if err != nil {
-	// 	logger.Warn("Failed to remove WAV file", "error", err, "wavFilePath", wavFilePath)
-	// }
+	err = os.Remove(wavFilePath)
+	if err != nil {
+		logger.Warn("Failed to remove WAV file", "error", err, "wavFilePath", wavFilePath)
+	}
 	return nil
 }
 
