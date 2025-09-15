@@ -12,6 +12,7 @@ func fftRealToComplex(x []float64) []complex128 {
 	for i := range x {
 		c[i] = complex(x[i], 0)
 	}
+
 	return fft(c)
 }
 

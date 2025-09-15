@@ -100,6 +100,44 @@ func PlotWaveform(original []float64, downsampled []float64, filename string) er
 	return nil
 }
 
+// PlotArrays plots one or more slices of float64 values and saves to a PNG file.
+// Each dataset gets a different color/label automatically.
+func PlotArrays(title, filename string, datasets ...[]float64) error {
+	if len(datasets) == 0 {
+		return nil
+	}
+
+	// Create plot
+	p := plot.New()
+	p.Title.Text = title
+	p.X.Label.Text = "Index"
+	p.Y.Label.Text = "Value"
+
+	// Colors will auto-cycle
+	for i, data := range datasets {
+		pts := make(plotter.XYs, len(data))
+		for j, v := range data {
+			pts[j].X = float64(j)
+			pts[j].Y = v
+		}
+
+		line, err := plotter.NewLine(pts)
+		if err != nil {
+			return err
+		}
+
+		line.LineStyle.Width = vg.Points(1)
+		p.Add(line)
+		p.Legend.Add("Series "+string(rune('A'+i)), line) // Series A, B, C...
+	}
+
+	// Save
+	if err := p.Save(10*vg.Inch, 4*vg.Inch, filename); err != nil {
+		return err
+	}
+	return nil
+}
+
 // map value [0,1] to heatmap color (black→purple→red→yellow→white)
 func heatmapColor(v float64) color.RGBA {
 	if v < 0 {
@@ -202,6 +240,90 @@ func SaveSpectrogramWithLabels(spectrogram [][]complex128, filename string, samp
 	dc.DrawStringAnchored("Frequency (Hz)", 20, float64(height/2+20), 0.5, 0.5)
 
 	// Step 3: Save
+	return dc.SavePNG(filename)
+}
+
+// SaveConstellationMap saves a visualization of peaks (time, frequency) as an image.
+// peaks is a slice of [2]float64 where index 0 is time (in seconds) and index 1 is frequency (Hz).
+// sampleRate is used to scale frequency axis, maxTime is the duration in seconds to scale time axis.
+// The output image has labeled axes similar to SaveSpectrogramWithLabels.
+func SaveConstellationMap(peaks [][2]float64, filename string, sampleRate int, maxTime float64) error {
+	// Define canvas and margin sizes
+	margin := 80
+	canvasW := 800 + margin + 20
+	canvasH := 400 + margin + 20
+
+	// Create a new drawing context
+	dc := gg.NewContext(canvasW, canvasH)
+
+	// Background: white
+	dc.SetRGB(1, 1, 1)
+	dc.Clear()
+
+	// Define plotting area dimensions
+	plotWidth := 800
+	plotHeight := 400
+
+	// Draw axes lines
+	dc.SetRGB(0, 0, 0)
+	dc.SetLineWidth(1)
+	// Y axis
+	dc.DrawLine(float64(margin), 20, float64(margin), float64(plotHeight+20))
+	// X axis
+	dc.DrawLine(float64(margin), float64(plotHeight+20), float64(margin+plotWidth), float64(plotHeight+20))
+	dc.Stroke()
+
+	// Load font for labels
+	if err := dc.LoadFontFace("/System/Library/Fonts/Supplemental/Arial.ttf", 12); err != nil {
+		return err
+	}
+
+	// Draw X-axis labels (time in seconds)
+	for sec := 0; sec <= int(maxTime); sec++ {
+		x := margin + int(float64(plotWidth)*float64(sec)/maxTime)
+		dc.DrawStringAnchored(fmt.Sprintf("%ds", sec), float64(x), float64(plotHeight+40), 0.5, 0.5)
+		dc.DrawLine(float64(x), float64(plotHeight+20), float64(x), float64(plotHeight+25))
+		dc.Stroke()
+	}
+	dc.DrawStringAnchored("Time (s)", float64(margin+plotWidth/2), float64(plotHeight+65), 0.5, 0.5)
+
+	// Draw Y-axis labels (frequency in Hz)
+	maxFreq := sampleRate / 2
+	for i := 0; i <= 10; i++ {
+		y := 20 + plotHeight - int(float64(plotHeight)*float64(i)/10.0)
+		freq := float64(maxFreq) * float64(i) / 10.0
+		dc.DrawStringAnchored(fmt.Sprintf("%.0f Hz", freq), float64(margin-10), float64(y), 1, 0.5)
+		dc.DrawLine(float64(margin-5), float64(y), float64(margin), float64(y))
+		dc.Stroke()
+	}
+	dc.DrawStringAnchored("Frequency (Hz)", 20, float64(plotHeight/2+20), 0.5, 0.5)
+
+	// Draw peaks as small red circles
+	dc.SetRGB(1, 0, 0) // red color
+	radius := 2.0
+
+	for _, peak := range peaks {
+		timeVal := peak[0]
+		freqVal := peak[1]
+
+		// Skip peaks outside the plotting range
+		if timeVal < 0 || timeVal > maxTime {
+			continue
+		}
+		if freqVal < 0 || freqVal > float64(maxFreq) {
+			continue
+		}
+
+		// Map time and frequency to canvas coordinates
+		x := float64(margin) + (float64(plotWidth) * timeVal / maxTime)
+		y := 20 + float64(plotHeight) - (float64(plotHeight) * freqVal / float64(maxFreq))
+
+		// Draw circle
+		dc.DrawCircle(x, y, radius)
+		dc.Fill()
+	}
+
+	// Save image to file
 	return dc.SavePNG(filename)
 }
 
