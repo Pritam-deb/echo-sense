@@ -33,4 +33,6 @@ spotify_token.json
 
 #all generated image
 *.png
-*.png
+*.txt
+
+**/.DS_Store

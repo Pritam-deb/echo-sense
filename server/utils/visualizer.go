@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"log"
 
 	// "image/png"
 	"math"
@@ -153,6 +154,25 @@ func heatmapColor(v float64) color.RGBA {
 	b := uint8(255 * math.Max(0, 1-v*3))
 
 	return color.RGBA{R: r, G: g, B: b, A: 255}
+}
+
+func PrintLongVals(dataset interface{}, filename string) {
+	file, err := os.Create(fmt.Sprintf("%s.txt", filename))
+	if err != nil {
+		log.Fatalf("failed to create file: %s", err)
+	}
+	defer file.Close()
+
+	originalStdout := os.Stdout
+
+	defer func() {
+		os.Stdout = originalStdout
+	}()
+
+	os.Stdout = file
+
+	fmt.Println("the dataset is: ", dataset)
+
 }
 
 // SaveSpectrogramImage saves spectrogram as grayscale or heatmap
