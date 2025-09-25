@@ -67,6 +67,19 @@ func TracksDownloader(tracks []Track, downloadPath string) (int, error) {
 			trackInfo.Title, trackInfo.Artist = changeFileName(trackInfo.Title, trackInfo.Artist)
 			fileName := fmt.Sprintf("%s - %s", trackInfo.Artist, trackInfo.Title)
 			filePath := filepath.Join(downloadPath, fileName+".m4a")
+
+			if _, err := os.Stat(filePath); err == nil {
+				logger.Info("File already exists, skipping download", "filePath", filePath)
+				err = processAndSaveTrack(filePath, trackInfo.Title, trackInfo.Artist, track.Album, ytID)
+				if err != nil {
+					logger.ErrorContext(ctx, "Failed to process and save track", slog.Any("error", err), slog.Any("filePath", filePath))
+					results <- 0
+					return
+				}
+				results <- 1
+				return
+			}
+
 			err = downloadAudioFromYT(ytID, downloadPath, filePath)
 			if err != nil {
 				logger.ErrorContext(ctx, "Failed to download audio from YT", slog.Any("error", err), slog.Any("ytID", ytID), slog.Any("filePath", filePath))
@@ -74,6 +87,12 @@ func TracksDownloader(tracks []Track, downloadPath string) (int, error) {
 				return
 			}
 			err = processAndSaveTrack(filePath, trackInfo.Title, trackInfo.Artist, track.Album, ytID)
+			if err != nil {
+				logger.ErrorContext(ctx, "Failed to process and save track", slog.Any("error", err), slog.Any("filePath", filePath))
+				results <- 0
+				return
+			}
+			results <- 1
 		}(track)
 	}
 	wg.Wait()
@@ -144,36 +163,36 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, songAlbum, ytID s
 	// pairs := recognisingalgorithm.BuildConstellationMap(peaks, 3.0)
 	// fingerprints := recognisingalgorithm.GenerateFingerprints(pairs)
 	fmt.Println("Generated", len(fingerprints), "fingerprints")
-	// var audioFingerprints []models.AudioFingerprint
-	// for address, fp := range fingerprints {
-	// 	audioFingerprints = append(audioFingerprints, models.AudioFingerprint{
-	// 		Address:    int(address),
-	// 		AnchorTime: int(fp.AnchorTime),
-	// 		SongID:     song.ID,
-	// 	})
-	// }
+	var audioFingerprints []models.AudioFingerprint
+	for address, fp := range fingerprints {
+		audioFingerprints = append(audioFingerprints, models.AudioFingerprint{
+			Address:    int(address),
+			AnchorTime: int(fp.AnchorTime),
+			SongID:     song.ID,
+		})
+	}
 
-	// if len(audioFingerprints) > 0 {
-	// 	batchSize := 1000
-	// 	for i := 0; i < len(audioFingerprints); i += batchSize {
-	// 		end := i + batchSize
-	// 		if end > len(audioFingerprints) {
-	// 			end = len(audioFingerprints)
-	// 		}
-	// 		if err := db.DB.Create(audioFingerprints[i:end]).Error; err != nil {
-	// 			logger.Error("Failed to save batch of fingerprints", "error", err)
-	// 			return err
-	// 		}
-	// 	}
-	// } else {
-	// 	fmt.Println("No fingerprints generated for song:", songTitle)
-	// }
+	if len(audioFingerprints) > 0 {
+		batchSize := 1000
+		for i := 0; i < len(audioFingerprints); i += batchSize {
+			end := i + batchSize
+			if end > len(audioFingerprints) {
+				end = len(audioFingerprints)
+			}
+			if err := db.DB.Create(audioFingerprints[i:end]).Error; err != nil {
+				logger.Error("Failed to save batch of fingerprints", "error", err)
+				return err
+			}
+		}
+	} else {
+		fmt.Println("No fingerprints generated for song:", songTitle)
+	}
 
 	// clean up temp files
-	err = os.Remove(audioFilePath)
-	if err != nil {
-		logger.Warn("Failed to remove audio file", "error", err, "audioFilePath", audioFilePath)
-	}
+	// err = os.Remove(audioFilePath)
+	// if err != nil {
+	// 	logger.Warn("Failed to remove audio file", "error", err, "audioFilePath", audioFilePath)
+	// }
 	err = os.Remove(wavFilePath)
 	if err != nil {
 		logger.Warn("Failed to remove WAV file", "error", err, "wavFilePath", wavFilePath)

@@ -57,7 +57,6 @@ func Spectrogram(sample []float64, sampleRate int) ([][]complex128, error) {
 	}
 
 	fmt.Println("Spectrogram frames:", len(spectrogram))
-	fmt.Println("first value of spectrogram: ", spectrogram[0])
 	return spectrogram, nil
 }
 
