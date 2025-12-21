@@ -13,7 +13,7 @@ Given a Spotify track URL, `echo-sense`:
 
 - Fetches track metadata from Spotify
 - Finds a matching YouTube video
-- Downloads audio (`.m4a`)
+- Downloads audio via `yt-dlp` (saved as `.m4a`)
 - Converts to WAV via `ffmpeg`
 - Builds a spectrogram, extracts peaks, generates fingerprints
 - Stores songs + fingerprints in Postgres (via GORM)
@@ -37,6 +37,7 @@ This repo is actively evolving. The download + fingerprint generation path is im
 
 - Go (see `server/go.mod` for the configured version)
 - Postgres (local or remote)
+- `yt-dlp` available on your `PATH`
 - `ffmpeg` available on your `PATH`
 
 ## Setup
@@ -44,9 +45,10 @@ This repo is actively evolving. The download + fingerprint generation path is im
 1. Install dependencies
 
 - macOS (`brew`):
-  - `brew install ffmpeg postgresql@16`
+  - `brew install ffmpeg postgresql@16 yt-dlp`
 - Linux (example):
   - `sudo apt-get install -y ffmpeg postgresql`
+  - `python3 -m pip install -U yt-dlp`
 
 1. Create `server/.env`
 
@@ -110,6 +112,7 @@ This converts the `.m4a` to WAV, generates fingerprints from the audio, and runs
 ## Notes & Troubleshooting
 
 - If you see `ffmpeg error: exec: "ffmpeg": executable file not found in $PATH`, install `ffmpeg` and ensure it’s on your `PATH`.
+- If you see `exec: "yt-dlp": executable file not found in $PATH`, install `yt-dlp` and ensure it’s on your `PATH`.
 - If Postgres connection fails, double-check `DB_HOST`, `DB_PORT`, and that `DB_USER` can connect to Postgres without a password (or update `server/db/db.go` to include a password in the DSN).
 - Spotify auth uses a cached token file `spotify_token.json` in the working directory; don’t commit it.
 
