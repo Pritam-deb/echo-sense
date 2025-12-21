@@ -1,6 +1,7 @@
 # echo-sense
 
 CLI-first audio fingerprinting experiment (Shazam-style) written in Go.
+<img width="1266" height="388" alt="Screenshot 2025-12-21 at 11 50 47 PM" src="https://github.com/user-attachments/assets/1a8c9ff8-abef-4afd-bbe3-1ae5034c0fe9" />
 
 Given a Spotify track URL, `echo-sense`:
 
