@@ -3,7 +3,13 @@
 CLI-first audio fingerprinting experiment (Shazam-style) written in Go.
 <img width="1266" height="388" alt="Screenshot 2025-12-21 at 11 50 47 PM" src="https://github.com/user-attachments/assets/1a8c9ff8-abef-4afd-bbe3-1ae5034c0fe9" />
 
+https://github.com/user-attachments/assets/a7bd948c-a9ed-4617-8063-f034aa1d69a5
+
+
 Given a Spotify track URL, `echo-sense`:
+
+
+
 
 - Fetches track metadata from Spotify
 - Finds a matching YouTube video
