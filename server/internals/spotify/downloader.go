@@ -3,9 +3,9 @@ package spotify
 import (
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -15,7 +15,6 @@ import (
 	recognisingalgorithm "github.com/Pritam-deb/echo-sense/internals/recognisingAlgorithm"
 	wavservice "github.com/Pritam-deb/echo-sense/internals/wavService"
 	"github.com/Pritam-deb/echo-sense/utils"
-	"github.com/kkdai/youtube/v2"
 )
 
 var wg sync.WaitGroup
@@ -46,6 +45,7 @@ func TracksDownloader(tracks []Track, downloadPath string) (int, error) {
 	sem := make(chan struct{}, noCPUs)
 	logger := utils.GetLogger()
 	results := make(chan int, len(tracks))
+	errs := make(chan error, len(tracks))
 	ctx := context.Background()
 
 	for _, track := range tracks {
@@ -60,6 +60,7 @@ func TracksDownloader(tracks []Track, downloadPath string) (int, error) {
 			ytID, err := getYoutubeID(*trackInfo)
 			if err != nil {
 				logger.ErrorContext(ctx, "Failed to get YT ID", slog.Any("error", err), slog.Any("track", trackInfo))
+				errs <- err
 				results <- 0
 				return
 			}
@@ -73,6 +74,7 @@ func TracksDownloader(tracks []Track, downloadPath string) (int, error) {
 				err = processAndSaveTrack(filePath, trackInfo.Title, trackInfo.Artist, track.Album, ytID)
 				if err != nil {
 					logger.ErrorContext(ctx, "Failed to process and save track", slog.Any("error", err), slog.Any("filePath", filePath))
+					errs <- err
 					results <- 0
 					return
 				}
@@ -83,12 +85,14 @@ func TracksDownloader(tracks []Track, downloadPath string) (int, error) {
 			err = downloadAudioFromYT(ytID, downloadPath, filePath)
 			if err != nil {
 				logger.ErrorContext(ctx, "Failed to download audio from YT", slog.Any("error", err), slog.Any("ytID", ytID), slog.Any("filePath", filePath))
+				errs <- err
 				results <- 0
 				return
 			}
 			err = processAndSaveTrack(filePath, trackInfo.Title, trackInfo.Artist, track.Album, ytID)
 			if err != nil {
 				logger.ErrorContext(ctx, "Failed to process and save track", slog.Any("error", err), slog.Any("filePath", filePath))
+				errs <- err
 				results <- 0
 				return
 			}
@@ -97,6 +101,20 @@ func TracksDownloader(tracks []Track, downloadPath string) (int, error) {
 	}
 	wg.Wait()
 	close(results)
+	close(errs)
+	for r := range results {
+		downloadedCount += r
+	}
+	var firstErr error
+	for err := range errs {
+		if err != nil {
+			firstErr = err
+			break
+		}
+	}
+	if downloadedCount == 0 && firstErr != nil {
+		return 0, firstErr
+	}
 	return downloadedCount, nil
 }
 
@@ -200,55 +218,45 @@ func processAndSaveTrack(audioFilePath, songTitle, songArtist, songAlbum, ytID s
 	return nil
 }
 
-func downloadAudioFromYT(id, path, filepath string) error {
-	fmt.Println("Downloading to:", filepath, " in directory:", path)
+func downloadAudioFromYT(id, dirPath, filePath string) error {
 	logger := utils.GetLogger()
-	dir, err := os.Stat(path)
-	if err != nil {
-		logger.Error("Failed to get directory info", "error", err, "path", path)
+
+	if id == "" {
+		return fmt.Errorf("empty youtube id")
+	}
+
+	if _, err := os.Stat(dirPath); err != nil {
 		return err
 	}
 
-	if !dir.IsDir() {
-		err := fmt.Errorf("provided path is not a directory: %s", path)
-		logger.Error("Invalid directory path", "error", err, "path", path)
-		return err
-	}
-	youtubeClient := youtube.Client{}
-	video, err := youtubeClient.GetVideo(id)
-	if err != nil {
-		logger.Error("Failed to get YouTube video", "error", err, "id", id)
+	ytURL := fmt.Sprintf("https://www.youtube.com/watch?v=%s", id)
+	tmpFile := filePath + ".part"
+
+	cmd := exec.Command(
+		"yt-dlp",
+		"-f", "bestaudio[ext=m4a]/bestaudio",
+		"-o", tmpFile,
+		"--no-playlist",
+		"--quiet",
+		ytURL,
+	)
+
+	if err := cmd.Run(); err != nil {
+		logger.Error("yt-dlp failed", "error", err, "id", id)
+		_ = os.Remove(tmpFile)
 		return err
 	}
 
-	formats := video.Formats.Itag(140) // m4a format
-	if len(formats) == 0 {
-		err := fmt.Errorf("no suitable format found for video ID: %s", id)
-		logger.Error("No suitable format", "error", err, "id", id)
+	if err := utils.MoveFile(tmpFile, filePath); err != nil {
+		_ = os.Remove(tmpFile)
 		return err
 	}
-	file, err := os.Create(filepath)
-	if err != nil {
-		logger.Error("Failed to create file", "error", err, "filepath", filepath)
-		return err
+
+	size, err := GetFileSize(filePath)
+	if err != nil || size <= 0 {
+		_ = os.Remove(filePath)
+		return fmt.Errorf("yt-dlp produced empty file")
 	}
-	var fileSize int64
-	//to make sure file size is not 0 and file is completely written
-	//try not to use busy wait here
-	for fileSize == 0 {
-		stream, _, err := youtubeClient.GetStream(video, &formats[0])
-		if err != nil {
-			logger.Error("Failed to get video stream", "error", err, "id", id)
-			file.Close()
-			return err
-		}
-		if _, err = io.Copy(file, stream); err != nil {
-			logger.Error("Failed to copy stream to file", "error", err, "filepath", filepath)
-			file.Close()
-			return err
-		}
-		fileSize, _ = GetFileSize(filepath)
-	}
-	defer file.Close()
+
 	return nil
 }

@@ -14,8 +14,8 @@ func changeFileName(title, artist string) (string, string) {
 			artist = strings.ReplaceAll(artist, string(invalidChar), "")
 		}
 	} else {
-		title = strings.ReplaceAll(title, "/", "\\")
-		artist = strings.ReplaceAll(artist, "/", "\\")
+		title = strings.ReplaceAll(title, "/", "-")
+		artist = strings.ReplaceAll(artist, "/", "-")
 	}
 	return title, artist
 }

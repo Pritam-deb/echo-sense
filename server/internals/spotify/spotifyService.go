@@ -62,7 +62,7 @@ func GetTrackInfo(url string) (*Track, error) {
 	if len(matches) > 1 {
 		trackID = matches[1]
 	} else {
-		fmt.Println("No match found")
+		return nil, fmt.Errorf("invalid spotify track url: %s", url)
 	}
 	endpoint := baseUrl + trackID
 	statusCode, jsonResponse, err := hitSpotifyEndpoints(endpoint)
@@ -91,6 +91,9 @@ func GetTrackInfo(url string) (*Track, error) {
 	var allArtists []string
 	for _, artist := range result.Artists {
 		allArtists = append(allArtists, artist.Name)
+	}
+	if len(allArtists) == 0 {
+		return nil, fmt.Errorf("spotify track has no artists")
 	}
 	track := &Track{
 		Title:    result.Name,

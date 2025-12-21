@@ -5,6 +5,8 @@ go 1.24.0
 require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/kkdai/youtube/v2 v2.10.4
+	gorm.io/driver/postgres v1.6.0
+	gorm.io/gorm v1.30.3
 )
 
 require (
@@ -25,8 +27,6 @@ require (
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
-	gorm.io/driver/postgres v1.6.0 // indirect
-	gorm.io/gorm v1.30.3 // indirect
 )
 
 require (
@@ -37,7 +37,7 @@ require (
 	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect
 	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
 	github.com/google/uuid v1.6.0
-	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	golang.org/x/text v0.28.0 // indirect
 	gonum.org/v1/plot v0.16.0

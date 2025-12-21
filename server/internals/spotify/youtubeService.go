@@ -22,13 +22,18 @@ type SearchResult struct {
 func getYoutubeID(track Track) (string, error) {
 	var durationMatchTolerance = 15 // seconds
 	songDuration := track.Duration
-	searchQuery := track.Title + " " + track.Artist + "audio"
+	searchQuery := track.Title + " " + track.Artist + " audio"
+	fmt.Println("search query:", searchQuery)
 
 	ytSearchRes, err := youtubeSearch(searchQuery, 4)
 	if err != nil {
 		return "", err
 	}
+
 	for _, item := range ytSearchRes {
+		if item.Live || item.Duration == "" {
+			continue
+		}
 		allowedDurationRangeStart := songDuration - durationMatchTolerance
 		allowedDurationRangeEnd := songDuration + durationMatchTolerance
 		resultDuration := convertStringDurationToSeconds(item.Duration)
@@ -36,7 +41,7 @@ func getYoutubeID(track Track) (string, error) {
 			return item.ID, nil
 		}
 	}
-	return "", nil
+	return "", fmt.Errorf("no suitable youtube result for %q (duration %ds)", searchQuery, songDuration)
 }
 
 func convertStringDurationToSeconds(durationStr string) int {
@@ -66,6 +71,7 @@ func getContent(data []byte, index int) []byte {
 
 func youtubeSearch(searchQuery string, limitResult int) (results []*SearchResult, err error) {
 	ytSearchURL := "https://www.youtube.com/results?search_query=" + url.QueryEscape(searchQuery)
+	fmt.Println("YT Search URL:", ytSearchURL)
 	req, err := http.NewRequest("GET", ytSearchURL, nil)
 	if err != nil {
 		return nil, err
@@ -150,6 +156,7 @@ func youtubeSearch(searchQuery string, limitResult int) (results []*SearchResult
 			Live:       live,
 			SourceName: "youtube",
 		})
+		fmt.Println("Found YT Result:", title, "Duration:", duration, "Live:", live)
 	})
 
 	if err != nil {
