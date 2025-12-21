@@ -54,5 +54,33 @@ func Search(track string) {
 		return
 	}
 	fmt.Println("Number of samples:", len(samples))
-	recognisingalgorithm.FindMatches(int(wavInfo.SampleRate), wavInfo.Duration, samples)
+	matches, searchDuration, err := recognisingalgorithm.FindMatches(int(wavInfo.SampleRate), wavInfo.Duration, samples)
+
+	if err != nil {
+		fmt.Println("Error finding matches:", err)
+		return
+	}
+
+	if len(matches) == 0 {
+		fmt.Println("\nNo match found.")
+		fmt.Printf("\nSearch took: %s\n", searchDuration)
+		return
+	}
+
+	msg := "Matches:"
+	topMatches := matches
+	if len(matches) >= 5 {
+		msg = "Top 5 matches:"
+		topMatches = matches[:5]
+	}
+
+	fmt.Println(msg)
+	for _, match := range topMatches {
+		fmt.Printf("\t- %s by %s, score: %.2f\n",
+			match.SongTitle, match.SongArtist, match.Score)
+	}
+
+	fmt.Printf("\nSearch took: %s\n", searchDuration)
+	topMatch := topMatches[0]
+	fmt.Printf("\nFinal prediction: %s by %s , score: %.2f\n", topMatch.SongTitle, topMatch.SongArtist, topMatch.Score)
 }

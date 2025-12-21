@@ -3,6 +3,8 @@ package recognisingalgorithm
 import (
 	"errors"
 	"fmt"
+	"sort"
+	"time"
 
 	"github.com/Pritam-deb/echo-sense/db"
 	"github.com/Pritam-deb/echo-sense/db/models"
@@ -10,12 +12,22 @@ import (
 	"github.com/Pritam-deb/echo-sense/utils"
 )
 
-func FindMatches(sampleRate int, trackDuration float64, trackSample []float64) {
+type Match struct {
+	SongID     string
+	SongTitle  string
+	SongArtist string
+	YouTubeID  string
+	Timestamp  uint32
+	Score      float64
+}
+
+func FindMatches(sampleRate int, trackDuration float64, trackSample []float64) ([]Match, time.Duration, error) {
 	fmt.Println("the info received here", sampleRate)
+	startTime := time.Now()
 	spectrogram, err := Spectrogram(trackSample, sampleRate)
 	if err != nil {
 		errors.New("Failed to compute spectrogram.")
-		return
+		return nil, time.Since(startTime), nil
 	}
 
 	peaks := ExtractPeaks(spectrogram, trackDuration)
@@ -24,10 +36,12 @@ func FindMatches(sampleRate int, trackDuration float64, trackSample []float64) {
 	for address, fp := range fingerprints {
 		audioFingerprints[address] = fp.AnchorTime
 	}
-	MatchFingerPrints(audioFingerprints)
+	matches, _, _ := MatchFingerPrints(audioFingerprints)
+	return matches, time.Since(startTime), nil
 }
 
-func MatchFingerPrints(inputFP map[uint32]uint32) error {
+func MatchFingerPrints(inputFP map[uint32]uint32) ([]Match, time.Duration, error) {
+	start := time.Now()
 
 	addresses := make([]uint32, 0, len(inputFP))
 	for address := range inputFP {
@@ -35,7 +49,7 @@ func MatchFingerPrints(inputFP map[uint32]uint32) error {
 	}
 	audioFP, err := GetCouples(addresses)
 	if err != nil {
-		fmt.Errorf("failed to fetch address from the database.")
+		return nil, time.Since(start), fmt.Errorf("failed to fetch addresses from the database: %w", err)
 	}
 
 	matches := map[string][][2]uint32{}
@@ -54,7 +68,55 @@ func MatchFingerPrints(inputFP map[uint32]uint32) error {
 		}
 	}
 
-	return nil
+	scores := getRelativeTiming(matches)
+	results := make([]Match, 0, len(scores))
+	for songID, score := range scores {
+		song, err := db.GetSongByIDString(songID)
+		if err != nil {
+			continue
+		}
+		results = append(results, Match{
+			SongID:     songID,
+			SongTitle:  song.Title,
+			SongArtist: song.Artist,
+			YouTubeID:  song.YoutubeID,
+			Timestamp:  timeStamps[songID],
+			Score:      score,
+		})
+	}
+
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Score > results[j].Score
+	})
+
+	return results, time.Since(start), nil
+}
+
+func getRelativeTiming(matches map[string][][2]uint32) map[string]float64 {
+	scores := make(map[string]float64)
+
+	for songID, times := range matches {
+		offsetCounts := make(map[int32]int)
+
+		for _, timePair := range times {
+			sampleTime := int32(timePair[0])
+			dbTime := int32(timePair[1])
+			offset := dbTime - sampleTime
+			offsetBucket := offset / 100
+			offsetCounts[offsetBucket]++
+		}
+
+		maxCount := 0
+		for _, count := range offsetCounts {
+			if count > maxCount {
+				maxCount = count
+			}
+		}
+
+		scores[songID] = float64(maxCount)
+	}
+
+	return scores
 }
 
 func GetCouples(fpAddress []uint32) (map[uint32][]pkg.Couple, error) {
