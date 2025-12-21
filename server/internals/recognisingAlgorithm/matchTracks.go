@@ -33,11 +33,27 @@ func MatchFingerPrints(inputFP map[uint32]uint32) error {
 	for address := range inputFP {
 		addresses = append(addresses, address)
 	}
-	couples, err := GetCouples(addresses)
+	audioFP, err := GetCouples(addresses)
 	if err != nil {
 		fmt.Errorf("failed to fetch address from the database.")
 	}
-	fmt.Println("number of address matches are: ", len(couples))
+
+	matches := map[string][][2]uint32{}
+	timeStamps := map[string]uint32{}
+	targetZones := map[string]map[uint32]int{}
+	for address, couples := range audioFP {
+		for _, couple := range couples {
+			matches[couple.SongID] = append(matches[couple.SongID], [2]uint32{inputFP[address], couple.AnchorTime})
+			if timeExists, ok := timeStamps[couple.SongID]; !ok || couple.AnchorTime < timeExists {
+				timeStamps[couple.SongID] = couple.AnchorTime
+			}
+			if _, ok := targetZones[couple.SongID]; !ok {
+				targetZones[couple.SongID] = make(map[uint32]int)
+			}
+			targetZones[couple.SongID][couple.AnchorTime]++
+		}
+	}
+
 	return nil
 }
 
