@@ -1,0 +1,272 @@
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 18px;
+  background:
+    radial-gradient(1200px 700px at 25% 20%, rgba(124, 92, 255, 0.28), transparent 55%),
+    radial-gradient(900px 550px at 78% 30%, rgba(39, 214, 255, 0.18), transparent 60%),
+    radial-gradient(900px 650px at 60% 90%, rgba(255, 110, 199, 0.14), transparent 60%),
+    linear-gradient(180deg, #07070c 0%, #090a12 45%, #06060b 100%);
+}
+
+.shell {
+  width: min(980px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brandMark {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(124, 92, 255, 0.9), rgba(39, 214, 255, 0.8) 55%, rgba(255, 110, 199, 0.78));
+  box-shadow:
+    0 14px 38px rgba(124, 92, 255, 0.22),
+    0 10px 26px rgba(39, 214, 255, 0.12);
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brandName {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+}
+
+.brandTag {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.main {
+  display: grid;
+}
+
+.card {
+  position: relative;
+  border-radius: 28px;
+  padding: 26px 22px 22px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 40px 120px rgba(0, 0, 0, 0.55),
+    0 10px 28px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+}
+
+.cardListening {
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 50px 140px rgba(0, 0, 0, 0.6),
+    0 10px 30px rgba(124, 92, 255, 0.12);
+}
+
+.viz {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 18px 0 10px;
+}
+
+.canvas {
+  width: min(520px, 86vw);
+  height: auto;
+  border-radius: 999px;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pulse {
+  position: absolute;
+  inset: 20px;
+  border-radius: 999px;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 250ms ease, transform 250ms ease;
+  background: radial-gradient(circle at 50% 50%, rgba(124, 92, 255, 0.18), transparent 55%);
+  filter: blur(0.2px);
+}
+
+.pulseOn {
+  opacity: 1;
+  transform: scale(1);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(124, 92, 255, 0.22),
+      0 0 0 0 rgba(39, 214, 255, 0.12);
+  }
+  70% {
+    box-shadow:
+      0 0 0 22px rgba(124, 92, 255, 0),
+      0 0 0 42px rgba(39, 214, 255, 0);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(124, 92, 255, 0),
+      0 0 0 0 rgba(39, 214, 255, 0);
+  }
+}
+
+.centerBadge {
+  position: absolute;
+  width: 74px;
+  height: 74px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(6, 6, 11, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.status {
+  text-align: center;
+  padding: 8px 6px 4px;
+}
+
+.statusTitle {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+}
+
+.statusSub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.actions {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  justify-items: center;
+}
+
+.listenButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  color: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(135deg, rgba(124, 92, 255, 0.9), rgba(39, 214, 255, 0.78) 55%, rgba(255, 110, 199, 0.78));
+  box-shadow:
+    0 18px 48px rgba(124, 92, 255, 0.22),
+    0 10px 28px rgba(0, 0, 0, 0.35);
+  transform: translateZ(0);
+  transition: transform 140ms ease, filter 140ms ease, opacity 140ms ease;
+}
+
+.listenButton:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.listenButton:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+.listenButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.listenButtonOn {
+  background: linear-gradient(135deg, rgba(255, 110, 199, 0.86), rgba(255, 82, 110, 0.82));
+  box-shadow:
+    0 18px 48px rgba(255, 110, 199, 0.18),
+    0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.listenIcon {
+  display: grid;
+  place-items: center;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.metaItem {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.metaKey {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.metaValue {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.86);
+  font-weight: 600;
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.52);
+  padding-bottom: 6px;
+}
+
+@media (max-width: 520px) {
+  .card {
+    padding: 22px 16px 18px;
+  }
+
+  .centerBadge {
+    width: 66px;
+    height: 66px;
+  }
+}
