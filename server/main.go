@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log/slog"
 	"os"
@@ -63,6 +64,18 @@ func main() {
 		}
 		songTitle := os.Args[2]
 		handlers.Search(songTitle)
+
+	case "serve":
+		serverCmd := flag.NewFlagSet("serve", flag.ExitOnError)
+		protocol := serverCmd.String("protocol", "http", "Protocol to run the server on (http or https)")
+		port := serverCmd.String("port", "8080", "Port to run the server on")
+		serverCmd.Parse(os.Args[2:])
+		handlers.Serve(*protocol, *port)
+
+	default:
+		fmt.Println("Unknown command. Expected one of: 'search', 'download', 'serve'")
+		fmt.Println("Example: go run main.go <arguement>")
+		os.Exit(1)
 	}
 
 }
